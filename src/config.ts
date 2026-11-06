@@ -16,6 +16,8 @@ export interface CraterConfig {
   account?: string;
   readOnly: boolean;
   allowAdmin: boolean;
+  /** 只注册这些工具域（为空/null = 全部）；用于压 MCP 的 schema token 开销 */
+  toolGroups: string[] | null;
   enforceSelfScope: boolean;
   timeoutMs: number;
   transferTimeoutMs: number;
@@ -78,9 +80,20 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, opts: LoadOptio
     account: env.CRATER_ACCOUNT?.trim() || undefined,
     readOnly: bool(env.CRATER_READ_ONLY, false),
     allowAdmin: bool(env.CRATER_ALLOW_ADMIN, true),
+    toolGroups: parseGroups(env.CRATER_TOOL_GROUPS),
     enforceSelfScope: bool(env.CRATER_ENFORCE_SELF_SCOPE, true),
     timeoutMs: int(env.CRATER_TIMEOUT_MS, 30_000),
     transferTimeoutMs: int(env.CRATER_TRANSFER_TIMEOUT_MS, 600_000),
     workDir: env.CRATER_WORK_DIR?.trim() || join(tmpdir(), "crater-mcp"),
   };
+}
+/** CRATER_TOOL_GROUPS="jobs,files" → ["jobs","files"]；空/未设置 → null（注册全部） */
+function parseGroups(raw: string | undefined): string[] | null {
+  const text = (raw ?? "").trim();
+  if (!text || text === "*" || text.toLowerCase() === "all") return null;
+  const list = text
+    .split(/[,\s]+/)
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return list.length ? [...new Set(list)] : null;
 }

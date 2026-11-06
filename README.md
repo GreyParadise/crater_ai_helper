@@ -79,6 +79,20 @@ opencode / Kimi Code / DeepSeek Harness 的配置写法见 [`docs/mcp-design.md`
 每个工具的完整参数、作用域、读写标记见自动生成的 [`docs/tool-catalog.md`](docs/tool-catalog.md)（`npm run catalog` 重新生成）；
 `node dist/index.js --list` 打印 `METHOD /path`，可与 [`docs/api-inventory.md`](docs/api-inventory.md)（305 条真实路由、逐行核对源码）对照。
 
+### token 开销与按域裁剪
+
+MCP 的代价是**会话一开始就把全部工具 schema 注入上下文**。实测（`tools/list` 序列化后）：
+
+| 配置 | 工具数 | schema 大小 | 估算 token |
+| --- | --- | --- | --- |
+| 默认（8 域全开） | 176 | 187.9 KiB | 64k ~ 88k |
+| `CRATER_TOOL_GROUPS=auth,profile,jobs,files,images,datasets` | 87 | 106.6 KiB | 36k ~ 50k |
+| `CRATER_TOOL_GROUPS=jobs,files,auth` | 42 | 63.6 KiB | 22k ~ 30k |
+| `CRATER_TOOL_GROUPS=jobs` | 24 | 47.6 KiB | 16k ~ 23k |
+
+所以建议按用途裁剪：日常训推用第二个，只做作业用第三个；管理端（77 个工具、70 KiB）默认就别开。
+`CRATER_ALLOW_ADMIN=false` 会再剔掉整组 admin。
+
 ---
 
 ## 安全模型

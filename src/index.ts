@@ -84,9 +84,24 @@ async function main(): Promise<void> {
 
   const server = new McpServer({ name: "crater-mcp", version: VERSION });
 
+  const knownGroups = [...new Set(allSpecs.map((s) => s.group))];
+  if (config.toolGroups) {
+    const unknown = config.toolGroups.filter((g) => !knownGroups.includes(g));
+    if (unknown.length) {
+      log(`CRATER_TOOL_GROUPS 里有未知的域：${unknown.join(", ")}（可用：${knownGroups.join(", ")}）`);
+    }
+    const chosen = config.toolGroups.filter((g) => knownGroups.includes(g));
+    log(`CRATER_TOOL_GROUPS 生效：只注册 ${chosen.join(", ")}`);
+  }
+
   let registered = 0;
   let skippedAdmin = 0;
+  let skippedGroup = 0;
   for (const spec of allSpecs) {
+    if (config.toolGroups && !config.toolGroups.includes(spec.group)) {
+      skippedGroup++;
+      continue;
+    }
     if (spec.scope === "admin" && !config.allowAdmin) {
       skippedAdmin++;
       continue;
