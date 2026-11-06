@@ -31,15 +31,17 @@
 git clone <this-repo> && cd crater_ai_helper
 npm install && npm run build
 
-export CRATER_BASE_URL=http://172.16.16.140
-export CRATER_USERNAME=your-name
-export CRATER_PASSWORD=your-password
+# 只需填这一个文件（已被 .gitignore 忽略，不会进仓库）
+cp .env.example .env      # 然后改 CRATER_BASE_URL / CRATER_USERNAME / CRATER_PASSWORD
 
-node dist/index.js --check     # 工具定义校验
-node dist/index.js --whoami    # 用你的凭证登录一次，打印身份/账号/空间
+node dist/index.js --check     # 工具定义校验（离线可跑，176 个工具）
+node dist/index.js --whoami    # 登录一次，打印身份/账号/空间（排查配置最快）
 node dist/index.js --list      # 列出全部工具及其对应后端接口
 npm run smoke                  # 真机冒烟：握手 + 90 个只读工具接线 + 只读闸
 ```
+
+配置查找顺序：环境变量 > `CRATER_ENV_FILE` 指定的文件 > 当前目录 `.env` > 包根目录 `.env`。
+所以客户端里可以只写 `command` + `args`，凭证全放 `.env`。
 
 接入 agent（以 Codex 为例，`~/.codex/config.toml`）：
 

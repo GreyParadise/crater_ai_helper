@@ -13,6 +13,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CraterClient } from "./client.js";
 import { ConfigError, loadConfig } from "./config.js";
+import { loadEnvFile } from "./env.js";
 import { defaultFormat, executeTool, toErrorText, type ToolContext } from "./registry.js";
 import { allSpecs, summarize, validateSpecs } from "./tools/index.js";
 
@@ -26,6 +27,8 @@ function log(msg: string): void {
 async function main(): Promise<void> {
   const argv = new Set(process.argv.slice(2));
 
+  const envFile = loadEnvFile();
+  if (envFile) log(`已加载配置文件：${envFile}`);
   const offline = argv.has("--list") || argv.has("--check");
   let config;
   try {
