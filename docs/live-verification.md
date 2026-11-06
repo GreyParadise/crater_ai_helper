@@ -1,4 +1,4 @@
-# 真机实测记录（live verification）
+﻿# 真机实测记录（live verification）
 
 > 所有结论都来自实际请求与本会话的真实响应，不是推断。
 > 目标环境：Crater 面板 `http://172.16.16.140`（集群 `172.16.16.126`，k3s v1.36.4 + Volcano v1.16.0，
@@ -184,5 +184,8 @@ npm run catalog               # 生成 docs/tool-catalog.md
 
 `--check` / `--list` 现在**不需要凭证**（离线可用）；`--whoami` / `smoke` 才需要 `CRATER_*`。
 
-本次 `smoke` 覆盖 176 个工具中的 90 个只读工具：81 个 `PASS`（真实数据返回）、
-其余为 `ARGS`（MCP 层拦下缺少必填参数，属预期的接线正常）；`CRATER_READ_ONLY=true` 下写工具 100% 被 `GUARD` 拦下。
+本次 `smoke` 覆盖 176 个工具中的 **90 个只读工具**：**49 个 `PASS`**（返回真实数据）、
+**41 个 `ARGS`**（MCP 层拦下「缺少必填参数」，说明工具已正确接线且声明了必填项，属预期）；
+`CRATER_READ_ONLY=true` 下写工具 100% 被 `GUARD` 拦下（抽查 `crater_profile_update`）。
+
+参数化工具的「真实调用」证据不靠 smoke，而靠上面的端到端小节（作业建/日志/删、文件四件套、作业读取面 12 个带参工具）。

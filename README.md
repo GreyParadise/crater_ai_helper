@@ -38,7 +38,7 @@ export CRATER_PASSWORD=your-password
 node dist/index.js --check     # 工具定义校验
 node dist/index.js --whoami    # 用你的凭证登录一次，打印身份/账号/空间
 node dist/index.js --list      # 列出全部工具及其对应后端接口
-npm run smoke                  # 真机冒烟：握手 + 全量只读工具接线 + 只读闸
+npm run smoke                  # 真机冒烟：握手 + 90 个只读工具接线 + 只读闸
 ```
 
 接入 agent（以 Codex 为例，`~/.codex/config.toml`）：
