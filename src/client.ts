@@ -22,7 +22,9 @@ export type RequestMethod =
   | "MKCOL"
   | "PROPFIND"
   | "PROPPATCH"
-  | "OPTIONS";
+  | "OPTIONS"
+  // 不走上游 HTTP：由 crater_cli_* 工具转交给官方 crater 命令行（见 src/cli.ts）
+  | "CLI";
 export type QueryValue = string | number | boolean | undefined | null | Array<string | number>;
 
 export interface RequestOptions {

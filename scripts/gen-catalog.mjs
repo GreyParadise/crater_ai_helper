@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
  * 从编译产物生成工具目录文档：docs/tool-catalog.md
  * 用法：npm run build && node scripts/gen-catalog.mjs
@@ -52,6 +52,7 @@ const GROUP_DESC = {
   resources: "资源型号、节点、单价、上下文与资源预检（只读）",
   datasets: "数据集创建、更新、删除、分享、成员",
   admin: "管理端：用户、账号、资源、节点、系统配置、队列配额、运维、审批、GPU 分析",
+  cli: "官方 crater CLI 透传（只读 / 写两档，含模型下载、审批工单、Pod 诊断、兼容性检查）",
 };
 
 for (const [group, arr] of byGroup) {

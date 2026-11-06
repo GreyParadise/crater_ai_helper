@@ -34,7 +34,7 @@ npm install && npm run build
 # 只需填这一个文件（已被 .gitignore 忽略，不会进仓库）
 cp .env.example .env      # 然后改 CRATER_BASE_URL / CRATER_USERNAME / CRATER_PASSWORD
 
-node dist/index.js --check     # 工具定义校验（离线可跑，176 个工具）
+node dist/index.js --check     # 工具定义校验（离线可跑，178 个工具）
 node dist/index.js --whoami    # 登录一次，打印身份/账号/空间（排查配置最快）
 node dist/index.js --list      # 列出全部工具及其对应后端接口
 npm run smoke                  # 真机冒烟：握手 + 90 个只读工具接线 + 只读闸
@@ -63,7 +63,7 @@ opencode / Kimi Code / DeepSeek Harness 的配置写法见 [`docs/mcp-design.md`
 
 ## 工具覆盖
 
-**176 个工具 / 8 个域**（只读 90，写 86，其中 28 个 destructive）：
+**178 个工具 / 9 个域**（只读 90，写 88，其中 29 个 destructive；含 2 个官方 CLI 透传工具）：
 
 | 域 | 数量 | 能力 |
 | --- | --- | --- |
@@ -74,6 +74,7 @@ opencode / Kimi Code / DeepSeek Harness 的配置写法见 [`docs/mcp-design.md`
 | `files` | 12 | 列目录（递归/过滤/分页）、上传、下载、删除、移动、建目录、数据集目录浏览、用量、写权限校验 |
 | `resources` | 12 | GPU/CPU 型号、节点（详情/GPU/Pod）、单价、上下文、统计快照（只读） |
 | `datasets` | 13 | 数据集创建、更新、删除、分享给用户/账号、成员与候选查询 |
+| `cli` | 2 | 官方 `crater` CLI 透传：只读命令默认放行，写命令需 `CRATER_ALLOW_CLI_WRITE=true`；覆盖模型/数据集下载任务、审批工单、Pod 诊断、兼容性检查等 CLI 独有能力 |
 | `admin` | 77 | 用户（封禁/角色/余额/属性）、账号（成员/配额/账单）、资源（vgpu/网络/单价/同步）、节点（标签/注解/污点/排水/Pod 资源）、系统配置（计费/LLM/带宽/下载限速/GPU 分析）、队列配额、运维清理与锁时、审批工单、GPU 分析、全量作业与统计 |
 
 每个工具的完整参数、作用域、读写标记见自动生成的 [`docs/tool-catalog.md`](docs/tool-catalog.md)（`npm run catalog` 重新生成）；
@@ -85,13 +86,18 @@ MCP 的代价是**会话一开始就把全部工具 schema 注入上下文**。�
 
 | 配置 | 工具数 | schema 大小 | 估算 token |
 | --- | --- | --- | --- |
-| 默认（8 域全开） | 176 | 187.9 KiB | 64k ~ 88k |
+| 默认（9 域全开） | 178 | 191.0 KiB | 65k ~ 90k |
 | `CRATER_TOOL_GROUPS=auth,profile,jobs,files,images,datasets` | 87 | 106.6 KiB | 36k ~ 50k |
 | `CRATER_TOOL_GROUPS=jobs,files,auth` | 42 | 63.6 KiB | 22k ~ 30k |
 | `CRATER_TOOL_GROUPS=jobs` | 24 | 47.6 KiB | 16k ~ 23k |
+| `CRATER_TOOL_GROUPS=cli`（只有官方 CLI 透传） | 2 | 3.2 KiB | ≈1k |
 
 所以建议按用途裁剪：日常训推用第二个，只做作业用第三个；管理端（77 个工具、70 KiB）默认就别开。
 `CRATER_ALLOW_ADMIN=false` 会再剔掉整组 admin。
+
+**与官方 CLI 结合**：`cli` 组只占 3.2 KiB，却把官方 100+ 子命令接进来（模型下载、审批、Pod 诊断、兼容性检查）。
+省 token 的极致玩法是 `CRATER_TOOL_GROUPS=cli`（1k token）+ 让 agent 用官方 Skills 探路；
+需要强约束和高频主路径时再开对应业务域。分工与白名单见 [`docs/cli-bridge.md`](docs/cli-bridge.md)。
 
 ---
 
@@ -113,7 +119,21 @@ MCP 的代价是**会话一开始就把全部工具 schema 注入上下文**。�
 | --- | --- |
 | [`docs/mcp-design.md`](docs/mcp-design.md) | 架构、配置、安全模型、接入方式、里程碑、测试策略 |
 | [`docs/api-inventory.md`](docs/api-inventory.md) | Crater 全部 305 条路由 + 中间件链路 + 请求体结构 + 权限映射 |
-| [`docs/tool-catalog.md`](docs/tool-catalog.md) | 176 个工具的参数/作用域/读写标记（自动生成） |
+### 配套 Agent Skill
+
+`skills/crater-mcp-ops/SKILL.md` 是给 agent 的**操作指引**（不是代码）：它不增加能力，只规定
+"什么意图走哪条路、哪些参数最容易传错、失败怎么读错误"。装上它之后，agent 会先读指引再动手，
+比让它裸猜工具名可靠得多。
+
+```bash
+# 装到 Claude Code / Codex / Cursor 等支持的 agent（任选其一）
+npx skills add <本仓库路径或 GitHub URL> -l      # 先看有哪些 skill
+npx skills add <本仓库路径或 GitHub URL> -g --all # 全局安装
+```
+
+官方 CLI 的两套 Skill 与我们这套不冲突：官方 `crater-cli-*` 教 agent 用 CLI，
+我们这套教 agent **优先用 MCP 强类型工具、缺口才走 CLI 透传**。
+| [`docs/cli-bridge.md`](docs/cli-bridge.md) | 与官方 crater CLI 的分工、只读/写白名单、本平台实测 |
 | [`docs/live-verification.md`](docs/live-verification.md) | 真机实测记录：路由存在性、字段事实、端到端闭环证据 |
 | [`docs/tool-authoring.md`](docs/tool-authoring.md) | 新增工具的契约与硬性约束 |
 | `docs/legacy-assistant-design.md` | 已废弃的嵌入式助手方案（存档） |

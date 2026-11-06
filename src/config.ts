@@ -18,6 +18,10 @@ export interface CraterConfig {
   allowAdmin: boolean;
   /** 只注册这些工具域（为空/null = 全部）；用于压 MCP 的 schema token 开销 */
   toolGroups: string[] | null;
+  /** 官方 crater CLI 可执行文件（默认 crater / crater.exe，可用 CRATER_CLI_PATH 指定绝对路径） */
+  cliPath: string;
+  /** 是否允许通过 MCP 执行官方 CLI 的写命令（默认 false，只放行只读命令） */
+  allowCliWrite: boolean;
   enforceSelfScope: boolean;
   timeoutMs: number;
   transferTimeoutMs: number;
@@ -81,6 +85,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, opts: LoadOptio
     readOnly: bool(env.CRATER_READ_ONLY, false),
     allowAdmin: bool(env.CRATER_ALLOW_ADMIN, true),
     toolGroups: parseGroups(env.CRATER_TOOL_GROUPS),
+    cliPath: (env.CRATER_CLI_PATH ?? "").trim(),
+    allowCliWrite: bool(env.CRATER_ALLOW_CLI_WRITE, false),
     enforceSelfScope: bool(env.CRATER_ENFORCE_SELF_SCOPE, true),
     timeoutMs: int(env.CRATER_TIMEOUT_MS, 30_000),
     transferTimeoutMs: int(env.CRATER_TRANSFER_TIMEOUT_MS, 600_000),

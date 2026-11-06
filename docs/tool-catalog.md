@@ -1,6 +1,6 @@
 # Crater MCP 工具目录
 
-> 自动生成（`scripts/gen-catalog.mjs`），共 **176** 个工具：只读 90 个，写 86 个（其中 destructive 28 个）。
+> 自动生成（`scripts/gen-catalog.mjs`），共 **178** 个工具：只读 91 个，写 87 个（其中 destructive 29 个）。
 > 每个工具都以调用者的 Crater JWT 身份请求后端，权限与网页端一致。
 
 ## 总览
@@ -15,6 +15,7 @@
 | `resources` | 12 | 0 | 资源型号、节点、单价、上下文与资源预检（只读） |
 | `datasets` | 13 | 7 | 数据集创建、更新、删除、分享、成员 |
 | `admin` | 77 | 45 | 管理端：用户、账号、资源、节点、系统配置、队列配额、运维、审批、GPU 分析 |
+| `cli` | 2 | 1 | 官方 crater CLI 透传（只读 / 写两档，含模型下载、审批工单、Pod 诊断、兼容性检查） |
 
 ## destructive 工具（客户端应要求人类确认）
 
@@ -48,6 +49,7 @@
 | `crater_admin_ops_clean_waiting_jupyter` | `POST /api/v1/admin/operations/clean/clean-waiting-jupyter-job` | 清理长期排队的 Jupyter 作业 |
 | `crater_admin_ops_clean_waiting_custom` | `POST /api/v1/admin/operations/clean/clean-waiting-custom-job` | 清理长期排队的自定义作业 |
 | `crater_admin_gpu_analysis_confirm_stop` | `POST /api/v1/admin/gpu-analysis/:id/confirm-stop` | 确认并停止问题作业 |
+| `crater_cli_write` | `CLI crater <write subcommand>` | 执行官方 crater CLI 的写命令（需显式开启） |
 
 ## auth
 
@@ -2784,5 +2786,45 @@ _无参数_
 | `step` | 聚合粒度 |
 | `scope` | 统计维度；cluster 仅管理员可用 |
 | `targetID`（可选） | 目标 id（scope=user 填 user_id，scope=account 填 account_id；cluster 忽略） |
+
+</details>
+
+
+## cli
+
+| 工具 | 方法 | 路径 | 作用域 | 读/写 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| `crater_cli_read` | CLI | `crater <read-only subcommand>` | 仅本人 | 只读 | 把官方 `crater` CLI 当成透传通道，执行**只读**子命令，自动补 --json --no-interactive，返回结构化结果。适合官方 CLI 独有、本 MCP 没有强类型工具的能力：模型/数据集下载任务（download ls\|get\|logs）、审批工单（order ls\|get\|by-n |
+| `crater_cli_write` | CLI | `crater <write subcommand>` | 仅本人 | **写（destructive）** | 透传官方 CLI 的**写**命令，只有设置 CRATER_ALLOW_CLI_WRITE=true 后才可用，且仍受白名单限制。典型用途：下载任务（download model\|dataset\|create\|pause\|resume\|retry\|rm）、审批工单（order submit\|edit\|c |
+
+<details><summary>参数与完整描述</summary>
+
+### `crater_cli_read` — 执行官方 crater CLI 的只读命令
+
+- 接口：`CLI crater <read-only subcommand>`
+- 作用域：仅本人；只读
+
+```text
+把官方 `crater` CLI 当成透传通道，执行**只读**子命令，自动补 --json --no-interactive，返回结构化结果。适合官方 CLI 独有、本 MCP 没有强类型工具的能力：模型/数据集下载任务（download ls|get|logs）、审批工单（order ls|get|by-name）、Pod 诊断（pod containers|events|ingresses|logs|nodeports）、CLI 与平台兼容性（compatibility -p <url>）、镜像构建记录（image build ls|get|template）、镜像授权（image share ls|users|accounts）、CUDA 基础镜像与 Harbor 配额（image cuda ls / image quota get / image harbor info）。禁止：任何写命令（用 crater_cli_write）、auth login/switch、job token|secret|ssh、image harbor credential、file upload|download（沙箱外读写请走 crater_files_*）。注意：本工具用的是**你本机 crater CLI 自己的登录态**，与本 MCP 的账号互相独立；未登录请先在你自己的终端执行 crater auth login。:name 参数要传 jobName（vsc-...-abcde），不是中文显示名。
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `args` | crater 后面的参数数组，按段拆开，例如 ["job","ls","--page-size","5"]；不要带 "crater" 本身，也不要拼成一条字符串 |
+| `timeoutMs`（可选） | 超时毫秒数，默认 60000；下载/构建类可调大 |
+
+### `crater_cli_write` — 执行官方 crater CLI 的写命令（需显式开启）
+
+- 接口：`CLI crater <write subcommand>`
+- 作用域：仅本人；写操作（destructive）
+
+```text
+透传官方 CLI 的**写**命令，只有设置 CRATER_ALLOW_CLI_WRITE=true 后才可用，且仍受白名单限制。典型用途：下载任务（download model|dataset|create|pause|resume|retry|rm）、审批工单（order submit|edit|cancel、admin order approve|reject）、镜像构建（image build pip-apt|dockerfile|envd|remove、image share add|remove）、管理员清理（admin job delete|lock|unlock|keep|clean）。优先用本 MCP 的强类型工具（crater_jobs_create_*、crater_images_*）：它们有参数校验和更好的错误提示；只有 CLI 独有或 CLI 更成熟的写操作再用本工具。执行前请确认目标对象，避免误删。
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `args` | crater 后面的参数数组，按段拆开，例如 ["job","ls","--page-size","5"]；不要带 "crater" 本身，也不要拼成一条字符串 |
+| `timeoutMs`（可选） | 超时毫秒数，默认 60000；下载/构建类可调大 |
 
 </details>
