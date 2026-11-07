@@ -1,4 +1,4 @@
-﻿# crater-mcp
+# crater-mcp
 
 把 [Crater](https://github.com/raids-lab/crater) ML 训练平台**包成一个 MCP 服务**，交给 Codex / DeepSeek Harness / opencode / Kimi Code 等 agent 框架直接接管。
 
@@ -133,6 +133,7 @@ npx skills add <本仓库路径或 GitHub URL> -g --all # 全局安装
 
 官方 CLI 的两套 Skill 与我们这套不冲突：官方 `crater-cli-*` 教 agent 用 CLI，
 我们这套教 agent **优先用 MCP 强类型工具、缺口才走 CLI 透传**。
+| [`docs/password-reset.md`](docs/password-reset.md) | 邮箱重置密码 + 管理员重置密码 + SMTP 465 修复的排查与实施 |
 | [`docs/backend-secfix.md`](docs/backend-secfix.md) | 后端权限收口：普通用户越权读全平台数据的修复、验证与回滚 |
 | [`docs/dsh-setup.md`](docs/dsh-setup.md) | 装进 DeepSeek Harness：cordis.patch.yml 写法、生效方式、排查 |
 | [`docs/cli-bridge.md`](docs/cli-bridge.md) | 与官方 crater CLI 的分工、只读/写白名单、本平台实测 |
