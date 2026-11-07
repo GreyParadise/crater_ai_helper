@@ -8,7 +8,7 @@
 | 仓库 | 内容 | 远端 |
 | --- | --- | --- |
 | `crater_ai_helper` | MCP 服务、文档、脚本（本仓库） | `git@github.com:GreyParadise/crater_ai_helper.git`，分支 `feature/assistant` |
-| Crater 源码（`_crater_src`） | backend / frontend / cli / charts / skills / website | 见下（待确定远端） |
+| Crater 源码（`_crater_src`） | backend / frontend / cli / charts / skills / website | `git@github.com:GreyParadise/crater_local.git`，分支 `main` |
 
 Crater 源码原本只是一份**没有 `.git` 的快照**，无法继承上游提交历史。处理方式：
 在该目录 `git init -b main`，首个提交 `f092a73`「init: 基于上游 Crater 源码快照，转入团队自维护」
@@ -65,3 +65,20 @@ frontend/node_modules/  frontend/dist/  website/node_modules/  website/.docusaur
 - 自测数据已清理（`feedbacks` 表当前 0 行）
 
 镜像：`crater-be:feedback-20261107`、`crater-fe:feedback-20261107`。
+
+## 1.1 实际推送结果（2026-11-07）
+
+| 仓库 | 分支 | 提交 | 内容 |
+| --- | --- | --- | --- |
+| `GreyParadise/crater_ai_helper` | `feature/assistant` | `b44648e` | MCP 服务、文档、脚本（本仓库） |
+| `GreyParadise/crater_local` | `main` | `d38a5d1` | Crater 源码：`f092a73` 基线快照 + `d38a5d1` 本地定制清单（`LOCAL_CHANGES.md`） |
+
+推送方式：**SSH**（本机 key 已认证为 `GreyParadise`，无需 token）。
+
+推送前做过的安全检查（`_crater_src`）：
+
+- 跟踪文件 1805 个，**不含** `node_modules/`、`frontend/dist/`、`.env`、`.local/`；
+- 5 个已知明文口令（Harbor admin、crater-admin、ACL gateway、SMTP 授权码、JWT secret）
+  在源码树中**均未出现**。
+
+> 仓库根目录的 `LOCAL_CHANGES.md` 逐文件列出了我们相对上游的全部改动，方便以后 review 或迁移。
