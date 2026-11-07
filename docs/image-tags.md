@@ -13,7 +13,8 @@
 | crater-fe:onboarding3-20261107 | 新手引导（7 步，邮箱优先） |
 | crater-fe:onboarding5-20261107 | 修复切账号不触发引导 |
 | crater-fe:filesinit-20261107 | 文件系统未开通时显示初始化提示 |
-| crater-fe:feedback-20261107 | 平台内反馈页面（当前线上） |
+| crater-fe:feedback-20261107 | 平台内反馈页面 |
+| crater-fe:mcpguide-20261107 | 概览页「MCP 接入指南」按钮 + 独立 HTML 指南（当前线上） |
 
 > 发版务必用唯一 tag：前端 Deployment 是 imagePullPolicy: IfNotPresent，
 > 用 e-latest 这类可变 tag 时 ollout restart 不会重新拉镜像（踩过）。
