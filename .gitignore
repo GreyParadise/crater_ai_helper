@@ -7,3 +7,6 @@ dist/
 *.tsbuildinfo
 # 瀹¤鏃舵媺鍙栫殑婧愮爜鏍戜笌涓存椂浜х墿
 _crater_src/
+
+# 本机凭据/临时产物（前台 Harbor 凭证等）
+.local/
