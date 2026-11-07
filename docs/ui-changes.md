@@ -19,7 +19,7 @@
 | 12 | `src/routes/portal/route.tsx` | 挂载 `<OnboardingTour />` | 只在门户侧触发，admin 后台不打扰 |
 | 13 | `data-tour` 埋点：`components/sidebar/app-sidebar.tsx`（sidebar）、`components/sidebar/nav-main.tsx`（每个导航项 `/portal/xxx`）、`components/job/new-job-button.tsx`（new-job）、`routes/portal/more/user.tsx`（email-verify） | 给引导提供锚点 | 高亮定位 |
 | 14 | `routes/portal/more/user.tsx` | 「登录密码」卡片底部加 **重新观看新手引导** 按钮 | 可重看 |
-| 15 | `public/crater-mcp-guide.html`（新增）+ `routes/portal/overview/index.tsx` | 概览页「平台文档」→「MCP 接入指南」，指向站内 HTML 教程（自维护后不再指向官方文档站） |
+| 15 | `public/crater-mcp-guide.html` + `routes/portal/overview/index.tsx` | 概览页「平台文档」→「MCP 接入指南」；该页已重做为**产品级单页文档**：双主题、阅读进度、滚动高亮侧栏、代码高亮+复制、客户端 Tab、**上下文预算计算器**（按实测数据生成 CRATER_TOOL_GROUPS）、折叠式踩坑、移动端抽屉 |
 
 说明：
 
