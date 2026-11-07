@@ -125,3 +125,34 @@ kubectl -n crater set image deploy/crater-frontend \
 - 一次性 + 30 分钟有效；同一账号重新申请时旧令牌作废；
 - 统一响应文案防账号枚举；同账号 5 分钟冷却；被禁用户不发送；
 - 登录后修改密码的入口暂未做（用户可走「忘记密码」自助改），后续可补一个 `POST /api/v1/context/password`。
+
+## 6. 登录后自助修改密码（2026-11-07 追加）
+
+用户设置页（`/portal/more/user`）原来只有头像/邮箱，没有改密码入口。本次补上：
+
+**后端**：`POST /api/v1/context/password`（Protected，`internal/handler/context_password.go`）
+
+- body：`{ oldPassword, newPassword }`；
+- 校验原密码（bcrypt）、新密码长度 6~64、新密码不能与原密码相同；
+- LDAP 模式下直接拒绝（密码由 LDAP 管理）；历史账号没有本地密码时给出可读提示；
+- 成功后作废该用户尚未使用的邮箱重置令牌。
+
+**前端**
+
+| 文件 | 改动 |
+| --- | --- |
+| `services/api/context.ts` | 新增 `apiContextChangePassword` |
+| `routes/portal/more/-components/change-password-dialog.tsx`（新增） | 弹窗：当前密码 / 新密码 / 确认新密码，zod 校验两次一致 |
+| `routes/portal/more/user.tsx` | 「用户信息」卡片下方新增 **登录密码** 卡片 + 「修改密码」按钮 + 弹窗 |
+
+**实测**（clitest05 普通用户）：
+
+| 用例 | 结果 |
+| --- | --- |
+| 原密码错误 | 400「原密码不正确」 |
+| 新密码过短（123） | 400「新密码长度需在 6~64 个字符之间」 |
+| 正常修改 | 200「密码修改成功」 |
+| 新密码登录 | 200 |
+| 旧密码登录 | 401 |
+
+镜像：`crater-be:chpwd-20261107`、`crater-fe:chpwd-20261107`。
