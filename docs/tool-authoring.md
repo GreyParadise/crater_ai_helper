@@ -59,6 +59,21 @@ export interface ToolSpec {
 - 枚举型参数用 `z.enum([...])` 或 `z.number().int()` + `.describe()` 说明取值含义（如 1=guest 2=user 3=admin）。
 - 可选字段加 `.optional()`；不要给必填字段设默认值来「猜」用户意图。
 
+## 4.5 带进程内状态的工具（去重 / 限流）
+
+少数工具需要跨调用记忆状态，例如 `crater_feedback_submit` 的"同一故障 30 分钟只报一次"和"每小时最多 6 条"。
+约定：
+
+- 状态放**模块级**（`src/tools/<group>.ts` 顶层的 Map / 数组），随 MCP 实例生命周期存续，不落盘、不写库；
+- 只为**客户礼貌**（防 agent 刷屏），**不得**被当作安全边界——真正的边界永远在后端；
+- 命中限制时**不要抛错**，返回结构化结果（如 `{ skipped: true, reason: "…" }`），
+  并在 `reason` 里写清"该怎么办"（等多久 / 合并成一条 / 直接联系管理员），agent 会照做；
+- 状态键要**包含调用者身份**（用户名）或只作用于单实例，避免多用户共享实例时互相影响。
+
+范例见 `src/tools/feedback.ts` 的 `submitted` / `history` 与 `signature()`。
+
+---
+
 ## 5. 完成标准
 
 - `npx tsc -p tsconfig.json --noEmit` 通过（只允许他人文件尚未写完导致的报错）。

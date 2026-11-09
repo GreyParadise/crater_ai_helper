@@ -35,7 +35,7 @@ DSH 启动命令里的 profile 路径可以确认当前用的是哪个 profile�
     failOnStartupError: false       # 连不上也不要阻止 DSH 启动
     env:
       CRATER_ENV_FILE: '...\crater_ai_helper\.env'   # 凭据只在这里，写进 git 忽略的文件
-      CRATER_TOOL_GROUPS: 'auth,profile,jobs,files,images,resources,datasets,cli'
+      CRATER_TOOL_GROUPS: 'auth,profile,jobs,files,images,resources,stats,datasets,cli,feedback'
       CRATER_ALLOW_ADMIN: 'false'
       CRATER_READ_ONLY: 'false'
       CRATER_ENFORCE_SELF_SCOPE: 'true'
@@ -86,7 +86,7 @@ DSH 启动命令里的 profile 路径可以确认当前用的是哪个 profile�
 ## 6. 本机实测记录（2026-11-06）
 
 - DSH 桌面版当前 profile：`profiles\desktop`（由启动命令行参数确认）。
-- 按第 2 节写入后，用**同样的命令 + 清洗后的环境**手工握手：100 个工具、`crater_auth_whoami` 可调，
+- 按第 2 节写入后，用**同样的命令 + 清洗后的环境**手工握手：按默认工具组约 103 个工具、`crater_auth_whoami` 可调，
   `mcp__crater__<name>` 命名符合预期。
 - 运行中的 DSH 实例在改写配置文件后未自动加载新增行（仍为 199 个插件、无 `mcp-crater`），
   故结论为**需重启应用生效**。

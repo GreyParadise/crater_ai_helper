@@ -53,6 +53,7 @@ const GROUP_DESC = {
   datasets: "数据集创建、更新、删除、分享、成员",
   admin: "管理端：用户、账号、资源、节点、系统配置、队列配额、运维、审批、GPU 分析",
   cli: "官方 crater CLI 透传（只读 / 写两档，含模型下载、审批工单、Pod 诊断、兼容性检查）",
+  feedback: "故障上报：提交反馈（去重 / 限流 / 脱敏，impact+confidence 结构化）、查看我的反馈与管理员回复",
 };
 
 for (const [group, arr] of byGroup) {

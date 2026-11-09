@@ -176,7 +176,7 @@ crater_files_list   { path:"user", nameContains:"__mcp_smoke__" } → total=0
 ## 6. MCP 侧自检（可复现）
 
 ```bash
-node dist/index.js --check    # 176 个工具（auth:6, profile:7, jobs:24, images:25, files:12, resources:12, datasets:13, admin:77）
+node dist/index.js --check    # 176 个工具（当时；现 180，见 mcp-design §5）（auth:6, profile:7, jobs:24, images:25, files:12, resources:12, datasets:13, admin:77）
 node dist/index.js --list     # 每个工具带 METHOD /path
 npm run smoke                 # 握手 + 全量只读工具接线 + 只读闸 + 身份；本次结果：全部通过
 npm run catalog               # 生成 docs/tool-catalog.md
@@ -184,7 +184,7 @@ npm run catalog               # 生成 docs/tool-catalog.md
 
 `--check` / `--list` 现在**不需要凭证**（离线可用）；`--whoami` / `smoke` 才需要 `CRATER_*`。
 
-本次 `smoke` 覆盖 176 个工具中的 **90 个只读工具**：**49 个 `PASS`**（返回真实数据）、
+本次 `smoke` 覆盖当时 176 个工具中的 **90 个只读工具**（现只读工具 92 个）：**49 个 `PASS`**（返回真实数据）、
 **41 个 `ARGS`**（MCP 层拦下「缺少必填参数」，说明工具已正确接线且声明了必填项，属预期）；
 `CRATER_READ_ONLY=true` 下写工具 100% 被 `GUARD` 拦下（抽查 `crater_profile_update`）。
 

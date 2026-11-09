@@ -30,7 +30,7 @@
 │        │  stdio (MCP JSON-RPC)                                 │
 │        ▼                                                       │
 │  crater-mcp 进程（本仓库）                                      │
-│   ├── 工具注册表   src/tools/*.ts    （≈80 个工具，按域分组）      │
+│   ├── 工具注册表   src/tools/*.ts    （180 个工具，按域分组）      │
 │   ├── 通用执行器   src/registry.ts   （路径/query/body 拼装）      │
 │   ├── 作用域守卫   src/scope.ts      （只读闸 / admin 闸 / 宽接口闸）│
 │   └── HTTP 客户端  src/client.ts     （登录、refresh、401 自愈、上传下载）│
@@ -77,6 +77,8 @@ crater_ai_helper/
 │       ├── resources.ts  # 资源/节点/统计/上下文（只读）
 │       ├── datasets.ts   # 数据集创建/分享/成员
 │       ├── admin.ts      # 管理端：用户/账号/资源/节点/系统配置/队列配额/运维/审批
+│       ├── cli.ts        # 官方 CLI 透传（只读白名单 + 写命令开关）
+│       ├── feedback.ts   # 故障上报（提交/我的反馈；去重 + 限流 + 脱敏）
 │       └── index.ts      # 聚合 + 校验（唯一性/命名规范）
 ├── docs/
 │   ├── mcp-design.md          ← 本文件
@@ -181,7 +183,7 @@ crater_ai_helper/
 
 ## 5. 工具目录（按域）
 
-> **176 个工具 / 8 个域**（只读 90、写 86、destructive 28）。
+> **180 个工具 / 10 个域**（只读 92、写 88、destructive 29）。
 > 逐个工具的完整参数与作用域见自动生成的 [`tool-catalog.md`](tool-catalog.md)（`npm run catalog`）；
 > 简表见 `node dist/index.js --list`；每个工具都在 `src/tools/<group>.ts` 里有对应 `ToolSpec`。
 
@@ -195,6 +197,8 @@ crater_ai_helper/
 | resources | `resources.ts` | 12 | 资源型号、节点（详情/GPU/Pod）、单价、上下文、统计快照（全只读） | `crater_resources_list`、`crater_nodes_list` |
 | datasets | `datasets.ts` | 13 | 数据集创建/更新/删除/分享/成员（`detail/:id` 故意不封装，改从 `mydataset` 精确命中） | `crater_datasets_share_queue` |
 | admin | `admin.ts` | 77 | 用户、账号、资源、节点、系统配置、队列配额、运维清理、审批、GPU 分析、全量作业视图与统计 | `crater_admin_users_ban`、`crater_admin_system_billing_update` |
+| cli | `cli.ts` | 2 | 官方 CLI 透传：`crater_cli_read`（≈90 条只读命令白名单）、`crater_cli_write`（需 `CRATER_ALLOW_CLI_WRITE=true`，带硬拒绝清单） | `crater_cli_read`、`crater_cli_write` |
+| feedback | `feedback.ts` | 2 | 故障上报：提交反馈（去重 / 限流 / 脱敏，`impact`+`confidence` 结构化落库）、查看我的反馈与管理员回复 | `crater_feedback_submit`、`crater_feedback_mine` |
 
 **分层与风险标注**：每个工具都带 MCP 标准注解 `readOnlyHint` / `destructiveHint`，
 agent 框架可据此决定是否要人类确认（例如 opencode、Codex 会对 destructive 工具弹确认）。
@@ -380,14 +384,14 @@ CRATER_ACCOUNT = "q-3"
 - 提交前可用 `POST /api/v1/context/resource-limit-check`（实测 `{enabled,exceeded,details}`）与 `GET /api/v1/context/prequeue`（`{backfillEnabled}`）做预检
 ---
 
-## 11. 8 个域全部落地后的收口记录（2026-11-06 晚）
+## 11. 8 个域全部落地后的收口记录（2026-11-06 晚；现为 10 个域，见 §5）
 
 > 详细的真机证据（每条请求的真实响应）见 [`live-verification.md`](live-verification.md)。
 
 ### 11.1 交付状态
 
-- `node dist/index.js --check` → **176 个工具**（auth 6 / profile 7 / jobs 24 / images 25 / files 12 / resources 12 / datasets 13 / admin 77）。
-- `npm run smoke`（对 `http://172.16.16.140`，admin 身份）→ **全部通过**：握手、90 个只读工具接线、只读闸、身份输出。
+- `node dist/index.js --check` → **180 个工具**（auth 6 / profile 7 / jobs 24 / images 25 / files 12 / resources 12 / datasets 13 / admin 77 / cli 2 / feedback 2）。
+- `npm run smoke`（对 `http://172.16.16.140`，admin 身份）→ **全部通过**：握手、当时 90 个只读工具接线（现 92 个）、只读闸、身份输出。
 - 作业链路真机闭环：`crater_jobs_create_training` 建出 `sg-crater-admin-261106-892b0` → 容器内 `echo` 成功 →
   `crater_jobs_logs` 读回 `hello-from-crater-mcp` → `crater_jobs_stop` 删除 → 面板与集群均无残留。
 - 文件链路真机闭环：上传（自动建父目录）→ 列目录 → 下载校验内容 → 越界路径被拦 → 删除 → 再列目录为空。
@@ -416,3 +420,51 @@ CRATER_ACCOUNT = "q-3"
 - `rwfiles`（`?rw=true`）是「只含可写空间」，不是「带读写标记」；带路径且无写权限时直接 401。
 - 分页参数三套并存：`vcjobs` 用 `page_size`、`operation-logs` 用 `limit`、其余多数不分页。
 - 容器以 **root** 运行（`uid=0`），与之前记录的「非 root 容器」待改项一致，本轮未改动。
+
+---
+
+## 12. 故障上报通道（`feedback` 组 + `crater-incident-report` skill，2026-11-09）
+
+agent 在真实排障中会撞到平台侧问题（接口 5xx、ingress host 被填成 IP、CLI 缺上传接口、私有镜像拉取 401…）。
+以前这种情况只能靠用户口头反馈，信息残缺、也无法量化影响面。本轮把"上报"做成 agent 可用的一等能力。
+
+### 12.1 两个工具
+
+| 工具 | 作用 | 关键行为 |
+| --- | --- | --- |
+| `crater_feedback_submit` | 提交反馈到 `POST /api/v1/feedback` | `auto: true` → 标题加 `[Agent 自动汇报]` 前缀；`impact`/`confidence` 写入正文首行供管理员分诊；**同签名 30 分钟去重**、**每小时上限 6 条**、提交前**脱敏**（password/token/secret/Authorization/Bearer/JWT → `***`） |
+| `crater_feedback_mine` | 读 `GET /api/v1/feedback/mine` | 上报前查重、上报后跟踪管理员回复；可按未处理过滤 |
+
+去重/限流状态放在**进程内**（`src/tools/feedback.ts` 模块级 Map/数组）：MCP 实例生命周期内有效，
+不写库、不改后端 —— 因为这是"防 agent 刷屏"的客户端礼貌，不是安全边界。
+
+### 12.2 skill 与工具的分工
+
+工具只负责"发一条格式正确的反馈"，**判断该不该发是 skill 的事**：
+
+```
+skills/crater-incident-report/SKILL.md
+  §0 硬性要求   MUST：判定为平台侧 → 必须调 submit 并在回答里带编号；禁止静默失败；
+                       唯一例外：命中否决项 / 用户明确说不用报（都要写明理由）
+  §1 判断框架   Q1 归因（平台/环境/用户资产/用户操作/外部依赖）→ Q2 影响面 → Q3 能否自救 → Q4 置信度
+  §2 否决项     换掉用户侧变量就消失 / 报错指向用户输入 / 已知过渡态（新注册 60s 内 403 等）
+  §5 取证与提交 证据清单 + 标准调用模板 + 字段速查 + 返回值处理 + 通道不可用兜底
+  §6 案例       5 个真实案例（含管理员事后核实的真值）用于校准判断
+```
+
+**为什么不用关键词表**：第一版曾用"5xx/超时/403…"清单，实测立刻失效——
+"私有 Harbor 401""CLI 没有上传接口""ingress host 用 IP"都不在清单里，
+而"python:3.11-slim glibc 拒绝可执行栈"这种用户环境问题又容易被误报。
+改成"归因 + 影响面 + 置信度"的判断框架后，用 5 个真实案例回归，4 条完全命中、1 条需要"先量化再定性"。
+
+### 12.3 与网页端反馈的关系
+
+同一张表 `feedbacks`，同一套管理端处理页（`/admin/feedback`）：
+
+- 用户手动提交：网页 `/portal/more/feedback`；
+- agent 自动提交：本 MCP 的 `crater_feedback_submit`（标题带 `[Agent 自动汇报]` 前缀）；
+- 管理员统一在 `/admin/feedback` 列表 → 点击弹窗看详情 → 改状态 + 回复；
+- 用户/agent 都能用 `crater_feedback_mine`（或网页「我的反馈」）看到回复。
+
+> 关闭方式：`CRATER_TOOL_GROUPS` 里去掉 `feedback` 即可（skill 会自动退化为"整理好证据贴给用户手动提交"）。
+

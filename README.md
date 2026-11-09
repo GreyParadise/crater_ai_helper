@@ -37,7 +37,7 @@ cp .env.example .env      # 然后改 CRATER_BASE_URL / CRATER_USERNAME / CRATER
 node dist/index.js --check     # 工具定义校验（离线可跑，180 个工具）
 node dist/index.js --whoami    # 登录一次，打印身份/账号/空间（排查配置最快）
 node dist/index.js --list      # 列出全部工具及其对应后端接口
-npm run smoke                  # 真机冒烟：握手 + 90 个只读工具接线 + 只读闸
+npm run smoke                  # 真机冒烟：握手 + 全部只读工具接线 + 只读闸
 ```
 
 配置查找顺序：环境变量 > `CRATER_ENV_FILE` 指定的文件 > 当前目录 `.env` > 包根目录 `.env`。
@@ -75,6 +75,7 @@ opencode / Kimi Code / DeepSeek Harness 的配置写法见 [`docs/mcp-design.md`
 | `resources` | 12 | GPU/CPU 型号、节点（详情/GPU/Pod）、单价、上下文、统计快照（只读） |
 | `datasets` | 13 | 数据集创建、更新、删除、分享给用户/账号、成员与候选查询 |
 | `cli` | 2 | 官方 `crater` CLI 透传：只读命令默认放行，写命令需 `CRATER_ALLOW_CLI_WRITE=true`；覆盖模型/数据集下载任务、审批工单、Pod 诊断、兼容性检查等 CLI 独有能力 |
+| `feedback` | 2 | 故障上报：提交反馈（`auto` 自动加 `[Agent 自动汇报]` 前缀、`impact`/`confidence` 结构化、30 分钟去重、每小时 6 条上限、凭据自动脱敏）、查看我的反馈与管理员回复 |
 | `admin` | 77 | 用户（封禁/角色/余额/属性）、账号（成员/配额/账单）、资源（vgpu/网络/单价/同步）、节点（标签/注解/污点/排水/Pod 资源）、系统配置（计费/LLM/带宽/下载限速/GPU 分析）、队列配额、运维清理与锁时、审批工单、GPU 分析、全量作业与统计 |
 
 每个工具的完整参数、作用域、读写标记见自动生成的 [`docs/tool-catalog.md`](docs/tool-catalog.md)（`npm run catalog` 重新生成）；

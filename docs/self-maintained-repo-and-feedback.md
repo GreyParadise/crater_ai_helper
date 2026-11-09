@@ -55,6 +55,21 @@ frontend/node_modules/  frontend/dist/  website/node_modules/  website/.docusaur
 | `components/sidebar/nav-user.tsx` | 「问题反馈」由跳官方 Issues 改为 `navigate('/portal/more/feedback')` |
 | `routes/admin/route.tsx` | 管理端侧边栏新增「用户反馈」入口 |
 
+### Agent 侧：MCP 上报通道（2026-11-09 追加）
+
+除网页表单，agent 也能直接上报（同一张 `feedbacks` 表、同一个管理端处理页）：
+
+| 组件 | 位置 | 作用 |
+| --- | --- | --- |
+| `crater_feedback_submit` | `src/tools/feedback.ts` | 提交反馈；`auto:true` 加 `[Agent 自动汇报]` 前缀；`impact`/`confidence` 写入正文首行；去重（同签名 30 分钟）、限流（每小时 6 条）、脱敏（凭据 → `***`） |
+| `crater_feedback_mine` | 同上 | 上报前查重、上报后跟踪管理员回复 |
+| `crater-incident-report` skill | `skills/crater-incident-report/SKILL.md` | 判断"该不该报、怎么报"：§0 硬性要求（MUST 上报 / 禁止静默失败）、四问判断框架、证据清单、标准调用模板、5 个真实案例 |
+
+管理端无需区分来源：列表里 `[Agent 自动汇报]` 前缀即机器上报；点开弹窗可看正文首行的
+`【影响面：…　置信度：…】` 做分诊。
+
+---
+
 ## 3. 实测
 
 - 建表：`to_regclass('public.feedbacks')` → `feedbacks` ✅

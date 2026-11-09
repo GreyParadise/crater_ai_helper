@@ -1503,3 +1503,24 @@ Select-String -Path "$h\*.go","$h\*\*.go" -Pattern 'UserID\.Eq\(token\.UserID\)|
 > 以上 7 项均**不影响**第 1、2、4 部分的结论（路径/档位/权限闸门已逐行核对），只影响个别请求/响应字段的具体形状。
 
 > 已在本次审计中闭环的两项（原待确认）：`RefreshReq` = `{refreshToken string \`json:"refreshToken" binding:"required"\`}`（`auth.go:1085-1087`，不带 `Bearer ` 前缀）；`aijobs` 列表作用域 = 按 `token.AccountName`（账号内），见 `aijob/emias.go:319-333`。
+
+---
+
+## 附录 A. 本项目自研新增接口（不在上游 305 条之内）
+
+> 本仓库已转入团队自维护，下列接口由我们自行添加（实现在 `_crater_src/backend`，迁移见 `cmd/gorm-gen/models/migrate.go`）。
+> 审计口径与上文一致：全部为 gin 路由，作用域标注同 §4。
+
+| 方法 | 路径 | 作用域 | 说明 | 实现 |
+| --- | --- | --- | --- | --- |
+| POST | `/api/auth/forgot-password` | 公开 | 邮箱重置密码：发一次性链接（防枚举、5 分钟冷却） | `internal/handler/password_reset.go` |
+| POST | `/api/auth/reset-password` | 公开 | 用令牌重置密码（30 分钟有效、只存 sha256） | 同上 |
+| POST | `/api/v1/context/password` | Protected | 登录后自助改密（校验原密码；LDAP 模式拒绝） | `internal/handler/context_password.go` |
+| POST | `/api/v1/admin/users/:name/reset-password` | Admin | 管理员重置为「用户名+123」并发通知邮件 | `internal/handler/user_password_reset.go` |
+| POST | `/api/v1/feedback` | Protected（仅本人） | 提交平台反馈（网页与 agent 共用） | `internal/handler/feedback.go` |
+| GET | `/api/v1/feedback/mine` | Protected（仅本人） | 我的反馈 + 管理员回复 | 同上 |
+| GET | `/api/v1/admin/feedback` | Admin | 全部反馈（可按状态过滤） | 同上 |
+| PUT | `/api/v1/admin/feedback/:id` | Admin | 改状态 / 回复（记录回复人与时间） | 同上 |
+
+新增数据表：`password_reset_tokens`（迁移 `202611071200`）、`feedbacks`（迁移 `202611071300`）。
+
