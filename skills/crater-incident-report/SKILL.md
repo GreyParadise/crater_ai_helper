@@ -111,13 +111,13 @@ description: 使用 Crater 平台（尤其是通过 crater-mcp 工具或官方 C
 
 下面是某次真实会话中 agent 遇到的问题清单。**注意它们的归属各不相同**：
 
-| 现象 | Q1 归因 | Q2 影响面 | 判断 | 上报怎么写 |
-| --- | --- | --- | --- | --- |
-| `crater file upload` 返回 **404**（后端没有上传接口），只能用环境变量分块传 | **平台**（能力缺口） | 全体 CLI 用户 | ✅ **报**（`feature`） | "CLI `file upload` 请求的后端接口返回 404，实际无该接口；目前只能通过作业环境变量分块传输。影响：CLI 无法按文档上传文件。期望：补齐接口或文档标注不可用" |
-| 私有 Harbor 项目镜像**拉不到，401** | **需再判断**：若平台应注入 imagePullSecret 而没注入 → 平台；若用户自己没配 registry 凭据 → 用户 | 平台侧=一批人 / 用户侧=一个 | ⚠️ **先验证**：同账号拉公共镜像是否正常？同 registry 的其他镜像能否拉？错误是 registry 拒绝（`401 unauthorized`）还是 K8s 拉取失败（`ErrImagePull`）？**平台注入缺失就报，用户凭据问题就教他配** | 平台侧：附 `kubectl describe pod` 的 `Failed to pull image` 原文 + 该账号其他镜像是否同样失败 |
-| Jupyter 作业创建失败：**ingress host 配成了 IP**，K8s 拒绝 | **平台**（平台自己生成了非法参数） | 全体（任何名字里带点的作业都会踩） | ✅ **报**（`bug`，高置信） | "创建 Jupyter 作业时平台用 `<username>`/IP 生成 ingress host，K8s 拒绝：`Ingress is invalid: spec.rules[0].host: Invalid value`。复现：`crater_jobs_create_jupyter` + 任意作业名（无 hostname 配置）；变量替换：换作业名、换账号均复现" |
-| SSH 与端口转发**入口不稳定，多数请求到不了任务内部** | **平台**（网络/入口） | 全体 | ✅ **报**（`bug`） | 附：失败比例、错误形态（超时/connection refused/502）、目标端口、是否特定节点、是否与 ingress/nodeport 有关 |
-| `python:3.11-slim` 的 **glibc 拒绝加载要求可执行栈的库**，TensorRT 构建器起不来 | **用户侧**（用户选的镜像基础库限制），但 **平台侧可改善**（文档/推荐镜像/编译参数） | 一个（写 TensorRT 的人都会踩） | ❌ **不报为 bug**；✅ 作为 `feature`（低优先）可选上报"建议在文档/镜像模板里说明需 `noexecstack` 的依赖场景" | 直接教用户：换 `-devel`/更高 glibc 的镜像、`patchelf --clear-execstack`、或链接时加 `-Wl,-z,noexecstack` |
+| 现象 | Q1 归因 | Q2 影响面 | 判断 | 上报怎么写 | 事后核实（管理员排查结论） |
+| --- | --- | --- | --- | --- | --- |
+| `crater file upload` 返回 **404**（后端没有上传接口），只能用环境变量分块传 | **平台**（能力缺口） | 全体 CLI 用户 | ✅ **报**（`feature`） | "CLI `file upload` 请求的后端接口返回 404，实际无该接口；目前只能通过作业环境变量分块传输。影响：CLI 无法按文档上传文件。期望：补齐接口或文档标注不可用" | **真缺陷（部署）**：线上 storage-server 用的是上游预编译镜像，缺 `POST /api/ss/upload/*path` 路由 → 已换成自建镜像修复。判断正确：这确实是平台侧、会影响全体 CLI 用户 |
+| 私有 Harbor 项目镜像**拉不到，401** | **需再判断**：若平台应注入 imagePullSecret 而没注入 → 平台；若用户自己没配 registry 凭据 → 用户 | 平台侧=一批人 / 用户侧=一个 | ⚠️ **先验证**：同账号拉公共镜像是否正常？同 registry 的其他镜像能否拉？错误是 registry 拒绝（`401 unauthorized`）还是 K8s 拉取失败（`ErrImagePull`）？**平台注入缺失就报，用户凭据问题就教他配** | 平台侧：附 `kubectl describe pod` 的 `Failed to pull image` 原文 + 该账号其他镜像是否同样失败 | **真缺陷（配置）**：Harbor 拉取机器人 `robot$crater-pull-all` 的项目权限里没有该用户 → 补权限后实测 pull 成功。判断正确：**先验证再定性**是对的，这条如果直接说"用户自己没配凭据"就错了 |
+| Jupyter 作业创建失败：**ingress host 配成了 IP**，K8s 拒绝 | **平台**（平台自己生成了非法参数） | 全体（任何名字里带点的作业都会踩） | ✅ **报**（`bug`，高置信） | "创建 Jupyter 作业时平台用 `<username>`/IP 生成 ingress host，K8s 拒绝：`Ingress is invalid: spec.rules[0].host: Invalid value`。复现：`crater_jobs_create_jupyter` + 任意作业名（无 hostname 配置）；变量替换：换作业名、换账号均复现" | **真缺陷（代码）**：`config.host=172.16.16.140`（IP）被直接写进 `spec.rules[0].host` → 已改为 IP/空 host 退化成按路径路由。判断正确：高置信、直接报 |
+| SSH 与端口转发**入口不稳定，多数请求到不了任务内部** | **平台**（网络/入口） | 全体 | ✅ **报**（`bug`） | 附：失败比例、错误形态（超时/connection refused/502）、目标端口、是否特定节点、是否与 ingress/nodeport 有关 | **部分可改进**：入口本身可达，但 NodePort 随作业重建变化、路径入口要求严格尾斜杠 → 属"体验缺陷"而非"完全不可用"。教训：报之前**先量化失败比例与具体形态**，否则会被判定为"用户不会用" |
+| `python:3.11-slim` 的 **glibc 拒绝加载要求可执行栈的库**，TensorRT 构建器起不来 | **用户侧**（用户选的镜像基础库限制），但 **平台侧可改善**（文档/推荐镜像/编译参数） | 一个（写 TensorRT 的人都会踩） | ❌ **不报为 bug**；✅ 作为 `feature`（低优先）可选上报"建议在文档/镜像模板里说明需 `noexecstack` 的依赖场景" | 直接教用户：换 `-devel`/更高 glibc 的镜像、`patchelf --clear-execstack`、或链接时加 `-Wl,-z,noexecstack` | **与平台无关**：容器基础镜像 + TensorRT 库的 `execstack` 问题 → 给用户侧解法即可。判断正确：没把用户环境问题甩给管理员 |
 
 **从这 5 条能看出什么**
 
