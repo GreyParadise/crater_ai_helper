@@ -1,6 +1,6 @@
 # 与官方 crater CLI 的分工（CLI 桥接）
 
-本 MCP 有两层能力：**178 个强类型工具** 与 **官方 CLI 透传**（`crater_cli_read` / `crater_cli_write`）。
+本 MCP 有两层能力：**180 个强类型工具** 与 **官方 CLI 透传**（`crater_cli_read` / `crater_cli_write`）。
 本文说明为什么这样分工、白名单怎么定、以及什么场景该走哪条路。
 
 ## 1. 为什么要接官方 CLI

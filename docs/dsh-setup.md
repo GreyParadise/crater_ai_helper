@@ -67,8 +67,8 @@ DSH 启动命令里的 profile 路径可以确认当前用的是哪个 profile�
 
 | 配置 | 工具数 | schema | 估算 token |
 | --- | --- | --- | --- |
-| `auth,profile,jobs,files,images,resources,datasets,cli`（当前默认，无 admin） | 100 | ≈110 KiB | 38k ~ 52k |
-| 再加 `admin`（全开） | 178 | 191 KiB | 65k ~ 90k |
+| `auth,profile,jobs,files,images,resources,stats,datasets,cli,feedback`（当前默认，无 admin） | 103 | ≈124 KiB | 42k ~ 58k |
+| 再加 `admin`（全开） | 180 | 193.8 KiB | 66k ~ 91k |
 | 只 `cli`（官方 CLI 透传） | 2 | 3.2 KiB | ≈1k |
 
 要开管理端：`CRATER_TOOL_GROUPS` 末尾加 `,admin`，并把 `CRATER_ALLOW_ADMIN` 改成 `'true'`。

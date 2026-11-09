@@ -34,7 +34,7 @@ npm install && npm run build
 # 只需填这一个文件（已被 .gitignore 忽略，不会进仓库）
 cp .env.example .env      # 然后改 CRATER_BASE_URL / CRATER_USERNAME / CRATER_PASSWORD
 
-node dist/index.js --check     # 工具定义校验（离线可跑，178 个工具）
+node dist/index.js --check     # 工具定义校验（离线可跑，180 个工具）
 node dist/index.js --whoami    # 登录一次，打印身份/账号/空间（排查配置最快）
 node dist/index.js --list      # 列出全部工具及其对应后端接口
 npm run smoke                  # 真机冒烟：握手 + 90 个只读工具接线 + 只读闸
@@ -63,7 +63,7 @@ opencode / Kimi Code / DeepSeek Harness 的配置写法见 [`docs/mcp-design.md`
 
 ## 工具覆盖
 
-**178 个工具 / 9 个域**（只读 90，写 88，其中 29 个 destructive；含 2 个官方 CLI 透传工具）：
+**180 个工具 / 10 个域**（只读 92，写 88，其中 29 个 destructive；含 2 个官方 CLI 透传工具 + 2 个故障上报工具）：
 
 | 域 | 数量 | 能力 |
 | --- | --- | --- |
@@ -86,11 +86,12 @@ MCP 的代价是**会话一开始就把全部工具 schema 注入上下文**。�
 
 | 配置 | 工具数 | schema 大小 | 估算 token |
 | --- | --- | --- | --- |
-| 默认（9 域全开） | 178 | 191.0 KiB | 65k ~ 90k |
+| 默认（10 域全开） | 180 | 193.8 KiB | 66k ~ 91k |
 | `CRATER_TOOL_GROUPS=auth,profile,jobs,files,images,datasets` | 87 | 106.6 KiB | 36k ~ 50k |
 | `CRATER_TOOL_GROUPS=jobs,files,auth` | 42 | 63.6 KiB | 22k ~ 30k |
 | `CRATER_TOOL_GROUPS=jobs` | 24 | 47.6 KiB | 16k ~ 23k |
 | `CRATER_TOOL_GROUPS=cli`（只有官方 CLI 透传） | 2 | 3.2 KiB | ≈1k |
+| 只留上报通道 `feedback`（配 CLI 用） | 2 | 2.9 KiB | ≈1k |
 
 所以建议按用途裁剪：日常训推用第二个，只做作业用第三个；管理端（77 个工具、70 KiB）默认就别开。
 `CRATER_ALLOW_ADMIN=false` 会再剔掉整组 admin。
@@ -122,6 +123,10 @@ MCP 的代价是**会话一开始就把全部工具 schema 注入上下文**。�
 ### 配套 Agent Skill
 
 `skills/crater-mcp-ops/SKILL.md` 是给 agent 的**操作指引**（不是代码）：它不增加能力，只规定
+`skills/crater-incident-report/SKILL.md` 定义**故障自动上报**：什么算平台故障、要收集哪些证据、
+`crater_feedback_submit` 怎么填、上报后要给用户什么兜底方案。
+
+（下面这段是 crater-mcp-ops 的说明）它不增加能力，只规定
 "什么意图走哪条路、哪些参数最容易传错、失败怎么读错误"。装上它之后，agent 会先读指引再动手，
 比让它裸猜工具名可靠得多。
 
