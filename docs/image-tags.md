@@ -18,7 +18,8 @@
 | crater-fe:mcpguide4-20261107 | 指南重做为产品级单页文档（双主题/Tab/预算计算器/复制/滚动高亮） |
 | crater-fe:feedback-dialog-20261109 | 管理端反馈改列表 + 点击弹窗看详情 |
 | crater-fe:nodeoccupy-20261109 | 节点「取消独占」用账号名匹配污点 |
-| crater-be:ingressfix2-20261109 | jupyter ingress：host 为 IP/空时按路径路由（当前线上） |
+| crater-be:ingressfix2-20261109 | jupyter ingress：host 为 IP/空时按路径路由 |
+| crater-be:jupurl-20261109 | 作业入口 URL（Jupyter/WebIDE）在 IP/空 host 时改用 path 入口（当前线上） |
 | crater-storage:ingressfix-20261109 | 自建 storage-server（含 /api/ss/upload，当前线上，ns crater-workspace/webdav-deployment） |
 
 > 发版务必用唯一 tag：前端 Deployment 是 imagePullPolicy: IfNotPresent，
