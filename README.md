@@ -34,6 +34,8 @@ npm install && npm run build
 # 只需填这一个文件（已被 .gitignore 忽略，不会进仓库）
 cp .env.example .env      # 然后改 CRATER_BASE_URL / CRATER_USERNAME / CRATER_PASSWORD
 
+# 内网下载整包（不需要访问 GitHub）：生成后由门户 /downloads/crater-mcp.zip 提供
+node scripts/pack-download.mjs
 node dist/index.js --check     # 工具定义校验（离线可跑，180 个工具）
 node dist/index.js --whoami    # 登录一次，打印身份/账号/空间（排查配置最快）
 node dist/index.js --list      # 列出全部工具及其对应后端接口
