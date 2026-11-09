@@ -15,7 +15,8 @@
 | crater-fe:filesinit-20261107 | 文件系统未开通时显示初始化提示 |
 | crater-fe:feedback-20261107 | 平台内反馈页面 |
 | crater-fe:mcpguide-20261107 | 概览页「MCP 接入指南」按钮 + 首版 HTML 指南 |
-| crater-fe:mcpguide4-20261107 | 指南重做为产品级单页文档（双主题/Tab/预算计算器/复制/滚动高亮）（当前线上） |
+| crater-fe:mcpguide4-20261107 | 指南重做为产品级单页文档（双主题/Tab/预算计算器/复制/滚动高亮） |
+| crater-fe:feedback-dialog-20261109 | 管理端反馈改列表 + 点击弹窗看详情（当前线上） |
 
 > 发版务必用唯一 tag：前端 Deployment 是 imagePullPolicy: IfNotPresent，
 > 用 e-latest 这类可变 tag 时 ollout restart 不会重新拉镜像（踩过）。
