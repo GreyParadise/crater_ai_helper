@@ -161,3 +161,34 @@ clitest12: crater job create jupyter --name user-jup-test ... → job submitted�
 | 节点状态 | 未占用，`taints=None` |
 | 变更的线上组件 | `crater-backend`→`ingressfix2-20261109`；`webdav-deployment`→`crater-storage:ingressfix-20261109`（+`GIN_MODE=release`）；Harbor 机器人权限+1 项 |
 | 回滚方式 | 后端/前端镜像 tag 都可回退；存储服务回滚见第 1 节 |
+
+---
+
+## 追加（2026-11-09 中午）：Jupyter 页面 "Something went wrong!" 的三层原因
+
+修完 ingress host 后，作业能建、能跑、ingress 也在，但浏览器打开 `/ingress/jupyter/<jobName>` 只看到
+JupyterLab 的 **"Something went wrong!"**。继续拆，一共三层，缺一层都不通：
+
+| 层 | 现象 | 根因 | 处理 |
+| --- | --- | --- | --- |
+| ① 创建 | 建作业直接 500 | `config.host` 是 IP，被原样写进 `spec.rules[0].host` | 已修（IP/空 → 按路径路由，`cb73775`） |
+| ② 网络 | 经 ingress 访问 Pod **超时**（集群内直连也超时） | 作业创建时下发**与作业同名的 NetworkPolicy**，`ingress[].from` 只允许**同一 volcano 作业的 Pod**；ingress-nginx 不在白名单 → 全部丢弃 | 新增命名空间级放行策略 `allow-ingress-nginx-web-access`（NetworkPolicy 是并集，只加不减，不削弱作业隔离）。清单：`crater-deploy/manifests/networkpolicy-allow-ingress-nginx.yaml` |
+| ③ 地址 | iframe 加载后被浏览器拦 | 后端把访问地址写死成 `https://<host>/ingress/...`（jupyter）和 `https://<prefix>.<host>`（webide）；平台是 **http 访问 + 自签证书**，且 `<prefix>.<IP>` 根本无法解析 | 已修：无可用域名时返回同源相对路径 `/ingress/<baseURL>`、`/ingress/<baseURL>-<prefix>` |
+
+**排查关键证据**：
+
+```
+# ② 层：pod 内监听正常，但外部连不上
+pod 内 /proc/net/tcp → 00000000:22B8 (LISTEN, 0.0.0.0:8888) ✅
+同节点探针 nc -vz 10.52.2.158 8888 → Connection timed out ❌
+cilium endpoint 列表 → POLICY (ingress) = Enabled          ← 有策略在生效
+kubectl get netpol jpt-... → from: podSelector{volcano.sh/job-name=<同作业>}  ← ingress-nginx 不在其中
+补一条 namespaceSelector=ingress-nginx 后 → 立刻 200
+```
+
+**最终验收（浏览器实测）**：打开 `/ingress/jupyter/jpt-crater-admin-261109-83ad9`，
+内嵌 JupyterLab 正常渲染（Launcher / Notebook / Python 3 kernel / Console / Terminal 全部可用），
+控制台无 JS 错误。测试作业已删除。
+
+> 顺带发现：**webide 的入口地址也是坏的**（`https://c964b-1.172.16.16.140` 无法解析），
+> 已一并改成 path 形式，实测 `GET /ingress/crater-admin-261109-c964b-c964b-1/` → 200。
