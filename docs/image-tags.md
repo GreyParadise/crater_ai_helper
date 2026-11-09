@@ -17,7 +17,9 @@
 | crater-fe:mcpguide-20261107 | 概览页「MCP 接入指南」按钮 + 首版 HTML 指南 |
 | crater-fe:mcpguide4-20261107 | 指南重做为产品级单页文档（双主题/Tab/预算计算器/复制/滚动高亮） |
 | crater-fe:feedback-dialog-20261109 | 管理端反馈改列表 + 点击弹窗看详情 |
-| crater-fe:nodeoccupy-20261109 | 节点「取消独占」用账号名匹配污点（当前线上） |
+| crater-fe:nodeoccupy-20261109 | 节点「取消独占」用账号名匹配污点 |
+| crater-be:ingressfix2-20261109 | jupyter ingress：host 为 IP/空时按路径路由（当前线上） |
+| crater-storage:ingressfix-20261109 | 自建 storage-server（含 /api/ss/upload，当前线上，ns crater-workspace/webdav-deployment） |
 
 > 发版务必用唯一 tag：前端 Deployment 是 imagePullPolicy: IfNotPresent，
 > 用 e-latest 这类可变 tag 时 ollout restart 不会重新拉镜像（踩过）。

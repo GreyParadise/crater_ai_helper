@@ -45,11 +45,16 @@ export const specs: ToolSpec[] = [
     group: "feedback",
     title: "向管理员提交平台故障反馈",
     description:
-      "当你确认是**平台侧故障**（不是自己参数写错）时提交一条反馈给管理员，例如：接口 5xx / 网关 502 / 长时间超时、" +
-      "作业卡在 Pending 而节点与配额都正常、镜像构建异常失败、文件系统 403 而权限看起来正常、页面数据明显与集群不符。" +
-      "**不要**用它提交：用户参数错误、配额不足、权限不足、自己想问的功能用法（那些直接告诉用户即可）。" +
-      "auto=true 时标题会自动加「[Agent 自动汇报]」前缀；同一故障 30 分钟内只报一次，每小时最多 6 条；" +
-      "内容会自动脱敏（password/token/JWT 等替换成 ***）。提交后请把反馈编号告诉用户，并继续给出可行的替代方案或绕过方式。",
+      "把**平台侧问题**整理成一条反馈交给管理员。判断方法（不要只匹配报错关键词）：" +
+      "① 归因——这个失败边界在平台（后端/网关/K8s 准入/平台生成的参数/平台应注入的凭据/平台数据不一致）还是用户（自己的镜像、脚本、参数、配额）？" +
+      "② 影响面——全体 / 一批人 / 仅当前用户？" +
+      "③ 用户能否自己解决？" +
+      "④ 置信度——高（原始报错指向服务端、换变量复现、已排除用户侧）中（像平台问题但没排除用户侧 → 应先问用户是否要上报）低（可能只是用法不对 → 不上报，直接教用法）。" +
+      "**归因在平台侧就报，哪怕只有一个人受害**（否则下一个人还会踩）；换掉用户侧变量（镜像/参数/账号/作业名）问题就消失的不报。" +
+      "能力缺口（例如 CLI 没有上传接口）用 category=feature 报，别当成 bug 默默绕过。" +
+      "同一会话命中多个问题请**合并成一条**（bug 与 feature 最多分开 2 条），正文用 ①②③ 编号。" +
+      "auto=true 时标题自动加「[Agent 自动汇报]」前缀；同一签名 30 分钟内只报一次、每小时最多 6 条；内容自动脱敏。" +
+      "提交后请把编号告诉用户，并继续给出可用的绕过方案。",
     method: "POST",
     path: FEEDBACK,
     scope: "self",
@@ -68,6 +73,14 @@ export const specs: ToolSpec[] = [
             " ③ 涉及对象（作业名 jobName、镜像名、文件路径） ④ 发生时间 ⑤ 已做过的排查 ⑥ 期望行为"
         ),
       contact: z.string().max(180).optional().describe("可选：方便回访的联系方式"),
+      impact: z
+        .enum(["all", "some", "one"])
+        .optional()
+        .describe("影响面：all=全体用户/某类作业全部受影响；some=一批人（某镜像/某节点/某项目）；one=仅当前用户（根因仍在平台侧时才填）"),
+      confidence: z
+        .enum(["high", "medium"])
+        .optional()
+        .describe("你的判断置信度：high=原始报错指向服务端且已换变量复现；medium=现象像平台问题但未完全排除用户侧"),
       auto: z.boolean().optional().describe("是否由 agent 自动上报（true 时标题自动加 [Agent 自动汇报] 前缀）"),
       pageUrl: z.string().max(400).optional().describe("可选：相关页面路径，例如 /portal/jobs/detail"),
     },
@@ -77,10 +90,19 @@ export const specs: ToolSpec[] = [
       const auto = args.auto === true;
       const titleBase = String(args.title ?? "").trim();
       const title = auto ? `[Agent 自动汇报] ${titleBase}`.slice(0, 110) : titleBase.slice(0, 110);
-      const content = redact(String(args.content ?? "").trim());
+      const rawContent = redact(String(args.content ?? "").trim());
+      const impactLabel = { all: "全体", some: "一批人", one: "仅当前用户" } as Record<string, string>;
+      const confidenceLabel = { high: "高", medium: "中" } as Record<string, string>;
+      const header = [
+        args.impact ? `影响面：${impactLabel[String(args.impact)] ?? String(args.impact)}` : "",
+        args.confidence ? `置信度：${confidenceLabel[String(args.confidence)] ?? String(args.confidence)}` : "",
+      ]
+        .filter(Boolean)
+        .join("　");
+      const content = header ? `【${header}】\n${rawContent}` : rawContent;
 
       // 去重：30 分钟内同一签名只报一次
-      const sig = signature(category, titleBase, content);
+      const sig = signature(category, titleBase, rawContent);
       const now = Date.now();
       const last = submitted.get(sig);
       if (last && now - last < DEDUP_WINDOW_MS) {

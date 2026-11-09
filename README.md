@@ -139,6 +139,7 @@ npx skills add <本仓库路径或 GitHub URL> -g --all # 全局安装
 官方 CLI 的两套 Skill 与我们这套不冲突：官方 `crater-cli-*` 教 agent 用 CLI，
 我们这套教 agent **优先用 MCP 强类型工具、缺口才走 CLI 透传**。
 | [`docs/files-access-and-scope-fix.md`](docs/files-access-and-scope-fix.md) | 新用户文件系统 403（ACL 账号同步）、概览页 403、引导不触发 三处修复 |
+| [`docs/fulong-issues-triage.md`](docs/fulong-issues-triage.md) | 用户反馈 5 个问题的逐条定位结论（2 真缺陷已修 / 1 配置已补 / 1 待改 / 1 与平台无关） |
 | [`docs/self-maintained-repo-and-feedback.md`](docs/self-maintained-repo-and-feedback.md) | 转入自维护：源码仓库与「平台内反馈」系统 |
 | [`docs/ui-changes.md`](docs/ui-changes.md) | 我们对 Crater 前端的全部定制（升级时需重新套用的补丁清单） |
 | [`docs/password-reset.md`](docs/password-reset.md) | 邮箱重置密码 + 管理员重置密码 + SMTP 465 修复的排查与实施 |
