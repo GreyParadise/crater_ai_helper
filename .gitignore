@@ -8,5 +8,8 @@ dist/
 # 审计时拉取的源码树与临时产物
 _crater_src/
 
-# ����ƾ��/��ʱ���ǰ̨ Harbor ƾ֤�ȣ�
+# ����ƾ��/��ʱ���ǰ̨ Harbor ƾ֤�ȣ�
 .local/
+
+# 打包中间产物（scripts/pack-download.mjs 不进这里，产物直接写门户 downloads）
+build/
