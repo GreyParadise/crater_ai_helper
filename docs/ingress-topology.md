@@ -86,3 +86,30 @@
 | 5 | `sub_filter` 硬编码 `172.16.16.126:32057` | NodePort 变更即失效，且内部地址写死 | 改成按 `$http_host` 或配置注入 |
 | 6 | `allow-snippet-annotations=true` + risk=Critical | 任何能建 ingress 的人可改 nginx 行为 | 收紧到指定 namespace |
 | 7 | caddy 控制器空转（0 个 ingress） | 白占 LB IP 172.16.16.145 | 确认用途后下线 |
+
+---
+
+## 附：结合 Rancher / Harbor 的整体入口拓扑
+
+![Crater × Rancher × Harbor 整体入口拓扑](diagrams/platform-ingress-topology.png)
+
+> 可编辑源文件：`diagrams/platform-ingress-topology.drawio`　·　矢量：`diagrams/platform-ingress-topology.svg`
+
+**核心结论：三套入口互不共用**
+
+| 平台 | 入口方式 | 地址 | 是否经过 ingress-nginx |
+| --- | --- | --- | --- |
+| Crater | IngressClass `nginx`（唯一使用者） | VIP `172.16.16.140:80/443`（NP 32057/31432） | ✅ 是 |
+| Rancher | 自带 LoadBalancer（TLS 自己终结） | VIP `172.16.16.147:80/443`（NP 31880/32354） | ❌ 否 |
+| Harbor | 纯 NodePort | `172.16.16.126:30003`(http) / `:30013`(https) | ❌ 否（无 ingress、无 VIP） |
+| caddy | 自己的 Caddyfile 站点 | VIP `172.16.16.145`（nextcloud.lab） | ❌ 否（class `caddy` 使用者为 0） |
+| Grafana / Headlamp / Hubble / JupyterHub / Kubero / Kite / asr | 直连 LoadBalancer | .149 / .142 / .143 / .144 / .146 / .150 / .152–.153 | ❌ 否（无 ingress 层） |
+
+VIP 池共 11 个已占用（Cilium LB IPAM，余 49）。
+
+三者唯一的交集：
+
+1. **Crater 作业 → 从 Harbor 拉镜像**（`imagePullSecret: harbor-cred`，指向 `172.16.16.126:30003`）；
+2. **Crater 构建 → 推镜像到 Harbor**（buildkit 流水线）；
+3. **Rancher / Fleet → 部署与纳管 Crater**（`cattle-fleet-*` / Helm chart）；
+4. **Grafana/Prometheus → 抓节点与 Crater Pod 指标**（Crater「集群监控」页 iframe）。
