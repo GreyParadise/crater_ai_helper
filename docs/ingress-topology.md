@@ -113,3 +113,47 @@ VIP 池共 11 个已占用（Cilium LB IPAM，余 49）。
 2. **Crater 构建 → 推镜像到 Harbor**（buildkit 流水线）；
 3. **Rancher / Fleet → 部署与纳管 Crater**（`cattle-fleet-*` / Helm chart）；
 4. **Grafana/Prometheus → 抓节点与 Crater Pod 指标**（Crater「集群监控」页 iframe）。
+
+---
+
+## 附二：通信流程图（以 Crater 一次页面访问 + 一次作业内出向为例）
+
+![Crater 网络通信流程](diagrams/network-flow.png)
+
+> 可编辑源文件：`diagrams/network-flow.drawio`　·　矢量：`diagrams/network-flow.svg`
+
+**入向（8 跳）**
+
+```
+① 用户点页面 https://172.16.16.140/portal/...
+② 地址解析 → VIP 172.16.16.140:80（内网直连，无外部 DNS）
+③ 节点内核 Cilium eBPF：查 Service map，VIP:80 → 10.52.0.34:80，DNAT（无 iptables、无进程监听）
+④ 进入 ingress-nginx Pod：读 Host + path，匹配 15 条 ingress 规则
+   ├─ 无匹配 → 404 / default backend（终止）
+   └─ 命中 → ⑤ 选后端 Service，再 DNAT：ClusterIP 虚拟端口 → 目标 Pod IP:Port
+        ├─ /            → crater-frontend-svc:80 → 前端 Pod nginx:80（无策略限制）
+        ├─ /api         → crater-backend-svc:80 → 后端 Pod Go:8088
+        ├─ /api/ss      → crater-acl-gw:7320 → storage-server → PVC
+        └─ /ingress/<b> → svc-*-notebook:8888 → 作业 Pod（需放行 ingress-nginx）
+⑥ Pod 入口处执行 Cilium ingress 策略判定
+   ├─ 拒绝 → 连接超时（策略静默丢弃，不是 403）
+   └─ 放行 → ⑦ 容器进程处理请求
+⑧ 回程：conntrack 反查，原路返回，eBPF 在客户端侧还原源地址
+```
+
+**出向（作业 Pod 主动发起）**
+
+```
+① 作业 Pod 发起连接
+② 出向策略检查：作业 NetworkPolicy 只有 policyTypes: Ingress → 出向不限制
+③ 目标判定
+   ├─ 集群内 Service/其它 Pod：eBPF 转发；对端入向策略若不含本作业 → 丢包
+   ├─ 集群外 / Harbor(172.16.16.126:30003)：经 masquerade 从节点网卡 ens12 出去
+   ├─ DNS：CoreDNS 10.43.0.10
+   └─ K8s API：10.43.0.1:443 → apiserver 172.16.16.126:6443
+```
+
+**两个最容易踩的坑**
+
+1. 作业入口打不开：同作业 NetworkPolicy 未放行 `ingress-nginx`（需 `namespaceSelector` 放行）；
+2. Pod 声明 `hostPort: 80` 会和 VIP 抢流量（节点上本来没人监听 80，能绑上但分流错乱）。
