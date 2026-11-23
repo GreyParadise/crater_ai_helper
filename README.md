@@ -36,7 +36,7 @@ cp .env.example .env      # 然后改 CRATER_BASE_URL / CRATER_USERNAME / CRATER
 
 # 内网下载整包（不需要访问 GitHub）：生成后由门户 /downloads/crater-mcp.zip 提供
 node scripts/pack-download.mjs
-node dist/index.js --check     # 工具定义校验（离线可跑，180 个工具）
+node dist/index.js --check     # 工具定义校验（离线可跑，182 个工具）
 node dist/index.js --whoami    # 登录一次，打印身份/账号/空间（排查配置最快）
 node dist/index.js --list      # 列出全部工具及其对应后端接口
 npm run smoke                  # 真机冒烟：握手 + 全部只读工具接线 + 只读闸
@@ -65,14 +65,14 @@ opencode / Kimi Code / DeepSeek Harness 的配置写法见 [`docs/mcp-design.md`
 
 ## 工具覆盖
 
-**180 个工具 / 10 个域**（只读 92，写 88，其中 29 个 destructive；含 2 个官方 CLI 透传工具 + 2 个故障上报工具）：
+**182 个工具 / 10 个域**（只读 92，写 90，其中 30 个 destructive；含 2 个官方 CLI 透传工具 + 2 个故障上报工具 + 2 个镜像仓库凭据工具）：
 
 | 域 | 数量 | 能力 |
 | --- | --- | --- |
 | `auth` | 6 | 登录、注册、我是谁、切换账号（项目）、续期 |
 | `profile` | 7 | 资料完善、邮箱验证、账单摘要、配额与占用 |
 | `jobs` | 24 | WebIDE / Jupyter / PyTorch / TensorFlow / 自定义作业创建，列表、详情、YAML、事件、**日志（base64 自动解码）**、计费、入口凭据、停止、快照、SSH、资源预检、模板 |
-| `images` | 25 | envd / Dockerfile / kaniko 构建，镜像查询、任务状态、tag/架构/类型修改、共享、删除、Harbor 配额 |
+| `images` | 27 | envd / Dockerfile / kaniko 构建，镜像查询、任务状态、tag/架构/类型修改、共享、删除、Harbor 配额，以及**镜像仓库凭据**（自动获取/失效自愈/本机 docker login） |
 | `files` | 12 | 列目录（递归/过滤/分页）、上传、下载、删除、移动、建目录、数据集目录浏览、用量、写权限校验 |
 | `resources` | 12 | GPU/CPU 型号、节点（详情/GPU/Pod）、单价、上下文、统计快照（只读） |
 | `datasets` | 13 | 数据集创建、更新、删除、分享给用户/账号、成员与候选查询 |
@@ -89,7 +89,7 @@ MCP 的代价是**会话一开始就把全部工具 schema 注入上下文**。�
 
 | 配置 | 工具数 | schema 大小 | 估算 token |
 | --- | --- | --- | --- |
-| 默认（10 域全开） | 180 | 193.8 KiB | 66k ~ 91k |
+| 默认（10 域全开） | 182 | 196.6 KiB | 67k ~ 92k |
 | `CRATER_TOOL_GROUPS=auth,profile,jobs,files,images,datasets` | 87 | 106.6 KiB | 36k ~ 50k |
 | `CRATER_TOOL_GROUPS=jobs,files,auth` | 42 | 63.6 KiB | 22k ~ 30k |
 | `CRATER_TOOL_GROUPS=jobs` | 24 | 47.6 KiB | 16k ~ 23k |

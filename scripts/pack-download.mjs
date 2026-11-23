@@ -21,7 +21,7 @@ console.log(`→ 打包 HEAD=${head}（${date}）…`);
 
 execFileSync(
   "git",
-  ["archive", "--format=zip", "--prefix=crater-mcp/", "-o", zipPath, "HEAD"],
+  ["archive", "--format=zip", "--prefix=crater-mcp/", "-o", zipPath, "HEAD", "--", ".", ":(exclude)docs/diagrams"],
   { cwd: root, stdio: "inherit" }
 );
 

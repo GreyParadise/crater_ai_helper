@@ -13,6 +13,7 @@ import { specs as datasets } from "./datasets.js";
 import { specs as admin } from "./admin.js";
 import { specs as cli } from "./cli.js";
 import { specs as feedback } from "./feedback.js";
+import { specs as harbor } from "./harbor.js";
 
 export interface GroupSummary {
   group: string;
@@ -20,7 +21,7 @@ export interface GroupSummary {
   tools: string[];
 }
 
-export const allSpecs: ToolSpec[] = [...auth, ...profile, ...jobs, ...images, ...files, ...resources, ...datasets, ...admin, ...cli, ...feedback];
+export const allSpecs: ToolSpec[] = [...auth, ...profile, ...jobs, ...images, ...files, ...resources, ...datasets, ...admin, ...cli, ...feedback, ...harbor];
 
 export function summarize(): GroupSummary[] {
   const byGroup = new Map<string, string[]>();

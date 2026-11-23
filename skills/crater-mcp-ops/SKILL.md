@@ -46,6 +46,8 @@ metadata:
 | 提交作业 | `crater_jobs_create_webide` / `crater_jobs_create_jupyter` / `crater_jobs_create_training` / `crater_jobs_create_pytorch` / `crater_jobs_create_tensorflow` | 需要模板先 `crater_jobs_templates`、`crater_jobs_template_get` |
 | 提交前资源预检 | `crater_jobs_resource_limit_check` | 避免"创建即失败" |
 | 作业计费 | `crater_jobs_billing`、`crater_jobs_billing_detail` | |
+| docker push/pull 私有镜像前登录 | `crater_images_harbor_login` | 本机执行 docker login，凭据自动获取、必要时自动轮换，**密码不进对话**；报 401 时用 `forceRotate: true` |
+| 看我的镜像仓库地址 / 项目 / 用户名 | `crater_images_harbor_credential` | 默认只返回打码密码；只有确实要把密码贴到别处才用 `revealPassword: true` |
 | 传文件 / 建目录 / 移动 / 删除 | `crater_files_upload`、`crater_files_mkdir`、`crater_files_move`、`crater_files_delete` | 受 `CRATER_WORK_DIR` 沙箱限制；路径用逻辑路径 `user/...` |
 | 列远端目录 | `crater_files_list`、`crater_files_my_space`、`crater_files_account_space` | |
 | 存储用量 | `crater_files_usage` | CLI 没有对应命令 |

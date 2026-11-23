@@ -183,7 +183,13 @@ const CLI_HARD_DENY: { prefix: string[]; why: string }[] = [
   { prefix: ["job", "token"], why: "Jupyter token 属凭据，直接调用会把它写进对话上下文" },
   { prefix: ["job", "secret"], why: "WebIDE 密码属凭据；需要入口地址请用 crater_jobs_get_secret（本 MCP 已标注敏感）" },
   { prefix: ["job", "ssh"], why: "交互式 SSH 会话无法在 MCP 里使用" },
-  { prefix: ["image", "harbor", "credential"], why: "返回 Harbor 明文账号密码" },
+  {
+    prefix: ["image", "harbor", "credential"],
+    why:
+      "该命令会返回 Harbor 明文密码、且每调用一次平台就轮换一次（旧密码立即失效）。" +
+      "要登录镜像仓库请用 crater_images_harbor_login（本机执行 docker login，密码不进对话），" +
+      "需要查看仓库地址/项目/用户名用 crater_images_harbor_credential",
+  },
   { prefix: ["file", "upload"], why: "CLI 上传不受 CRATER_WORK_DIR 沙箱约束；请用 crater_files_upload" },
   { prefix: ["file", "download"], why: "CLI 下载不受 CRATER_WORK_DIR 沙箱约束；请用 crater_files_download" },
   { prefix: ["completion", "install"], why: "会修改本机 shell 配置" },

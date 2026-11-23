@@ -1,6 +1,6 @@
 # Crater MCP 工具目录
 
-> 自动生成（`scripts/gen-catalog.mjs`），共 **180** 个工具：只读 92 个，写 88 个（其中 destructive 29 个）。
+> 自动生成（`scripts/gen-catalog.mjs`），共 **182** 个工具：只读 92 个，写 90 个（其中 destructive 30 个）。
 > 每个工具都以调用者的 Crater JWT 身份请求后端，权限与网页端一致。
 
 ## 总览
@@ -10,7 +10,7 @@
 | `auth` | 6 | 4 | 登录、注册、身份确认、切换账号（项目）、token 续期 |
 | `profile` | 7 | 3 | 资料完善、邮箱验证、账单摘要、配额占用 |
 | `jobs` | 24 | 9 | 课程作业：创建（WebIDE/Jupyter/PyTorch/TF/自定义）、查询、日志、启停、入口凭据 |
-| `images` | 25 | 14 | 镜像构建（kaniko/Dockerfile/envd）、查询、共享、删除 |
+| `images` | 27 | 16 | 镜像构建（kaniko/Dockerfile/envd）、查询、共享、删除 |
 | `files` | 12 | 4 | 文件管理：列目录、上传、下载、删除、移动、建目录、用量 |
 | `resources` | 12 | 0 | 资源型号、节点、单价、上下文与资源预检（只读） |
 | `datasets` | 13 | 7 | 数据集创建、更新、删除、分享、成员 |
@@ -51,6 +51,7 @@
 | `crater_admin_ops_clean_waiting_custom` | `POST /api/v1/admin/operations/clean/clean-waiting-custom-job` | 清理长期排队的自定义作业 |
 | `crater_admin_gpu_analysis_confirm_stop` | `POST /api/v1/admin/gpu-analysis/:id/confirm-stop` | 确认并停止问题作业 |
 | `crater_cli_write` | `CLI crater <write subcommand>` | 执行官方 crater CLI 的写命令（需显式开启） |
+| `crater_images_harbor_credential` | `POST /api/v1/images/credential` | 获取我的 Harbor 镜像仓库凭据（自动生成 / 失效自愈） |
 
 ## auth
 
@@ -680,6 +681,8 @@ _无参数_
 | `crater_images_delete` | POST | `/api/v1/images/deleteimage` | 仅本人 | **写（destructive）** | 按 ID 列表批量删除自己拥有的镜像（后端逐个校验 owner）。用它可以一次清理多个镜像、腾出 Harbor 配额。注意：删除**不可恢复**，且可能连带影响引用该镜像的历史作业/他人共享（先用 crater_images_share_granted 确认共享情况）；空间回收有延迟，删完 crater_images_ |
 | `crater_images_delete_one` | DELETE | `/api/v1/images/image/:id` | 仅本人 | **写（destructive）** | 按路径中的镜像 ID 删除单个镜像（仅 owner 可用），是 crater_images_delete 的单条版本，调用语义更直观。注意：删除**不可恢复**；若只是想取消一次构建任务记录，别用这个，用 crater_images_kaniko_cancel。 |
 | `crater_images_kaniko_cancel` | POST | `/api/v1/images/remove` | 仅本人 | **写（destructive）** | 按构建任务 ID 删除（取消）我的一条 kaniko 构建记录，用于清理构建失败留下的垃圾记录。注意：它删除的是**构建任务记录**，不等于删除已构建出来的镜像（后者用 crater_images_delete）；操作不可恢复；若构建仍在进行中，进度查询会随之消失。 |
+| `crater_images_harbor_credential` | POST | `/api/v1/images/credential` | 仅本人 | **写（destructive）** | 返回我的私有 Harbor 项目 `user-<我的用户名>` 的访问凭据，用于 docker push / pull 私有镜像。**会自动判断并自愈**：本地有缓存且 Harbor 验证通过 → 直接复用（不轮换）；缓存失效（401）→ 自动轮换一次；本机首次使用 → 生成一套并把原文缓存到 ~/.crater-mc |
+| `crater_images_harbor_login` | POST | `/api/v1/images/credential` | 仅本人 | 写 | 在自己的机器上执行 `docker login <Harbor>`，凭据由平台自动获取（必要时自动轮换），**密码只通过 stdin 传给 docker，不写入对话**。适用场景：要 docker push 自建镜像、或 docker pull 私有镜像（匿名拉取会 401）时，先调它一次。幂等：已登录且凭据有效时不会 |
 
 <details><summary>参数与完整描述</summary>
 
@@ -1032,6 +1035,33 @@ _无参数_
 | 参数 | 说明 |
 | --- | --- |
 | `id` | 构建任务 ID（crater_images_kaniko_list 里的 ID 字段） |
+
+### `crater_images_harbor_credential` — 获取我的 Harbor 镜像仓库凭据（自动生成 / 失效自愈）
+
+- 接口：`POST /api/v1/images/credential`
+- 作用域：仅本人；写操作（destructive）
+
+```text
+返回我的私有 Harbor 项目 `user-<我的用户名>` 的访问凭据，用于 docker push / pull 私有镜像。**会自动判断并自愈**：本地有缓存且 Harbor 验证通过 → 直接复用（不轮换）；缓存失效（401）→ 自动轮换一次；本机首次使用 → 生成一套并把原文缓存到 ~/.crater-mcp/harbor.json（0600）。⚠️ 轮换会让**所有旧密码立即失效**（包括你其他机器上已登录的 docker），所以默认只在必要时轮换；forceRotate=true 才强制重置（等同网页端「重置密码」）。默认只返回打码后的密码；需要明文（例如手工贴到其他地方）才传 revealPassword=true。更好做法是直接用 crater_images_harbor_login：它在本机执行 docker login，密码不进对话。
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `forceRotate`（可选） | true=强制轮换密码（旧密码立即失效，其他机器需重新登录）；默认 false 只在缓存缺失或已失效时轮换 |
+| `revealPassword`（可选） | true=返回明文密码（会写进对话上下文，慎用）；默认返回打码 |
+
+### `crater_images_harbor_login` — 在本机登录 Harbor（自动取凭据，密码不进对话）
+
+- 接口：`POST /api/v1/images/credential`
+- 作用域：仅本人；写操作
+
+```text
+在自己的机器上执行 `docker login <Harbor>`，凭据由平台自动获取（必要时自动轮换），**密码只通过 stdin 传给 docker，不写入对话**。适用场景：要 docker push 自建镜像、或 docker pull 私有镜像（匿名拉取会 401）时，先调它一次。幂等：已登录且凭据有效时不会轮换密码。若镜像仓库用自签证书导致报 x509，返回里会给出把 CA 放进 /etc/docker/certs.d 的做法。
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `forceRotate`（可选） | true=先轮换密码再登录（旧密码失效） |
 
 </details>
 

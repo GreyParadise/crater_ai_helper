@@ -30,7 +30,7 @@
 │        │  stdio (MCP JSON-RPC)                                 │
 │        ▼                                                       │
 │  crater-mcp 进程（本仓库）                                      │
-│   ├── 工具注册表   src/tools/*.ts    （180 个工具，按域分组）      │
+│   ├── 工具注册表   src/tools/*.ts    （182 个工具，按域分组）      │
 │   ├── 通用执行器   src/registry.ts   （路径/query/body 拼装）      │
 │   ├── 作用域守卫   src/scope.ts      （只读闸 / admin 闸 / 宽接口闸）│
 │   └── HTTP 客户端  src/client.ts     （登录、refresh、401 自愈、上传下载）│
@@ -79,6 +79,7 @@ crater_ai_helper/
 │       ├── admin.ts      # 管理端：用户/账号/资源/节点/系统配置/队列配额/运维/审批
 │       ├── cli.ts        # 官方 CLI 透传（只读白名单 + 写命令开关）
 │       ├── feedback.ts   # 故障上报（提交/我的反馈；去重 + 限流 + 脱敏）
+│       ├── harbor.ts     # 镜像仓库凭据（缓存 + 401 自愈 + 本机 docker login）
 │       └── index.ts      # 聚合 + 校验（唯一性/命名规范）
 ├── docs/
 │   ├── mcp-design.md          ← 本文件
@@ -183,7 +184,7 @@ crater_ai_helper/
 
 ## 5. 工具目录（按域）
 
-> **180 个工具 / 10 个域**（只读 92、写 88、destructive 29）。
+> **182 个工具 / 10 个域**（只读 92、写 90、destructive 30）。
 > 逐个工具的完整参数与作用域见自动生成的 [`tool-catalog.md`](tool-catalog.md)（`npm run catalog`）；
 > 简表见 `node dist/index.js --list`；每个工具都在 `src/tools/<group>.ts` 里有对应 `ToolSpec`。
 
@@ -192,7 +193,7 @@ crater_ai_helper/
 | auth | `auth.ts` | 6 | 登录/注册/身份/切账号/续期 | `crater_auth_whoami`、`crater_auth_login`、`crater_auth_switch_account` |
 | profile | `profile.ts` | 7 | 资料完善、邮箱验证、账单摘要、配额 | `crater_profile_update`、`crater_profile_verify_email` |
 | jobs | `jobs.ts` | 24 | 5 类作业创建、列表、详情、YAML、事件、日志（base64 解码）、计费、启停、快照、SSH、入口凭据、资源预检、模板 | `crater_jobs_create_webide`、`crater_jobs_create_pytorch`、`crater_jobs_logs` |
-| images | `images.ts` | 25 | envd/dockerfile/kaniko 构建、列表、任务状态、tag/arch/type、共享、删除、Harbor 配额 | `crater_images_build_kaniko`、`crater_images_share` |
+| images | `images.ts` + `harbor.ts` | 27 | envd/dockerfile/kaniko 构建、列表、任务状态、tag/arch/type、共享、删除、Harbor 配额；**镜像仓库凭据**（自动获取/401 自愈/本机 docker login） | `crater_images_build_kaniko`、`crater_images_harbor_login` |
 | files | `files.ts` | 12 | 列目录（递归/过滤/分页）、上传（自动建父目录）、下载、删除、移动、建目录、数据集目录、用量、写权限 | `crater_files_upload`、`crater_files_download` |
 | resources | `resources.ts` | 12 | 资源型号、节点（详情/GPU/Pod）、单价、上下文、统计快照（全只读） | `crater_resources_list`、`crater_nodes_list` |
 | datasets | `datasets.ts` | 13 | 数据集创建/更新/删除/分享/成员（`detail/:id` 故意不封装，改从 `mydataset` 精确命中） | `crater_datasets_share_queue` |
