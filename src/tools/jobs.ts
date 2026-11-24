@@ -305,7 +305,15 @@ function createCommonShape(): z.ZodRawShape {
       .boolean()
       .optional()
       .describe("是否 CPU 绑核（requests=limits，独占物理核，适合性能测试）；不填为 false（limits 比 requests 多 1m CPU / 1Mi 内存，便于在线调资源）"),
-    forwards: z
+      expectedHours: z
+    .number()
+    .min(0.5)
+    .max(720)
+    .optional()
+    .describe(
+      "预计运行时长（小时）。**GPU 作业按 卡数 × 该值 预扣卡时**（例：1 卡 × 4h = 4 卡时）；不填时后端按默认 2 小时预扣；作业结束后按实际时长结算、差额退回。卡时不足会被拒绝（HTTP 400），需申请卡时额度或白名单；白名单用户不受卡时限制。"
+    ),
+forwards: z
       .array(forwardSchema)
       .optional()
       .describe("把容器端口暴露出去（TensorBoard、自定义 API 等）；不填则只有交互作业自带入口"),
