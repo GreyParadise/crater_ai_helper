@@ -23,6 +23,7 @@ export const specs: ToolSpec[] = [
     path: "/api/v1/gpuquota/me",
     scope: "self",
     readOnly: true,
+    input: {},
   },
   {
     name: "crater_gpu_whitelist_ls",
@@ -56,6 +57,7 @@ export const specs: ToolSpec[] = [
     path: "/api/v1/admin/gpuquota/reclaim/preview",
     scope: "admin",
     readOnly: true,
+    input: {},
   },
 
   /* ---------------- 申请（写，走工单） ---------------- */
